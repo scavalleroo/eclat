@@ -129,3 +129,36 @@ class EclatTree:
             child for child in parent.children if not child.support < support]
         for child in parent.children:
             self._remove_children_by_support(child, support)
+
+    def generate_association_rules(self, min_confidence: float = None):
+        rules = []
+        for child in self.root.children:
+            new_rules = self.generate_rules_from_parent(child)
+            for consequent in new_rules:
+                consequent.get('elements').pop(0)
+                if consequent.get('elements'):
+                    confidence = consequent.get('support') / child.support
+                    if min_confidence and confidence >= min_confidence \
+                            or not min_confidence:
+                        rules.append({
+                            'antecedent': [child.key],
+                            'consequent': consequent,
+                            'confidence': confidence,
+                        })
+        return rules
+
+    def generate_rules_from_parent(self, parent):
+        if parent.children:
+            rules = []
+            for child in parent.children:
+                rule = [parent.key]
+                new_rules = self.generate_rules_from_parent(child)
+                if new_rules:
+                    support = 0
+                    for r in new_rules:
+                        rule.extend(r.get('elements'))
+                        support = r.get('support')
+                    rules.append({'elements': rule, 'support': support})
+            return rules
+        else:
+            return [{'elements': [parent.key], 'support': parent.support}]
