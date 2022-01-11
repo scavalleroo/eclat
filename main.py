@@ -57,7 +57,7 @@ if __name__ == '__main__':
     print('Building the tree...')
     eclat_tree = EclatTree(root_t=EclatNode(0, 0))
     transactions = list()
-    f = open("data_custom.dat", "r")
+    f = open("data_XXS.dat", "r")
 
     for x in f:
         transaction = x.split(' ')
@@ -76,11 +76,11 @@ if __name__ == '__main__':
     support = int(f.readline())
     f.close()
 
-    print('Number of nodes: ' + str(eclat_tree.count_rules()))
+    print('Number of nodes: ' + str(eclat_tree.count_nodes()))
     print('Max support: ' + str(eclat_tree.find_max_support()))
     # print('Removing the nodes with support < ' + str(support) + ' ...')
     # eclat_tree.remove_children_by_support(support)
-    # print('Number of nodes: ' + str(eclat_tree.count_rules()))
-    eclat_tree.print_tree()
+    # eclat_tree.print_tree()
     rules = eclat_tree.generate_association_rules()
+    print('Number of rules: ' + str(len(rules)))
     print_rules_with_none_elements_in_set(rules, [1, 2])

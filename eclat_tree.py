@@ -101,7 +101,7 @@ class EclatTree:
                 parent.children.append(EclatNode(element, n_trans))
                 break
 
-    def count_rules(self):
+    def count_nodes(self):
         rules = 0
         if self.root.children:
             rules = self._explore_count_rules(self.root)
@@ -117,8 +117,10 @@ class EclatTree:
 
     def find_max_support(self):
         max_sup = 0
+        node = None
         if self.root.children:
-            max_sup = max([child.support for child in self.root.children])
+            max_sup = max(
+                max([child.support for child in self.root.children]), max_sup)
         return max_sup
 
     def remove_children_by_support(self, support: int):
