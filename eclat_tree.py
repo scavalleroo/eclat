@@ -55,24 +55,27 @@ class EclatTree:
         for i in range(len(transaction)-1):
             for child in self.root.children:
                 if child.key == transaction[i]:
-                    self.insert_children(child, transaction[i + 1:], n_trans)
+                    for j in range(len(transaction[i + 1:])):
+                        self._insert_children(
+                            child, transaction[i + j + 1:], n_trans)
 
-    def insert_children(
+    def _insert_children(
             self,
             parent: EclatNode,
             elements: typing.List[int],
             n_trans: int,
     ):
         if elements:
-            for i in range(len(elements)):
-                if parent.children:
-                    self._insert_child(parent, elements[i], n_trans)
-                else:
-                    parent.children.append(EclatNode(elements[i], n_trans))
-                if len(elements) > 1:
-                    for child in parent.children:
-                        if child.key == elements[i]:
-                            self.insert_children(child, elements[i+1:], n_trans)
+            if parent.children:
+                self._insert_child(parent, elements[0], n_trans)
+            else:
+                parent.children.append(EclatNode(elements[0], n_trans))
+            if len(elements) > 1:
+                for child in parent.children:
+                    if child.key == elements[0]:
+                        self._insert_children(
+                            child, elements[1:], n_trans)
+                        break
 
     @staticmethod
     def _insert_child(parent: EclatNode, element: int, n_trans: int):
@@ -135,8 +138,9 @@ class EclatTree:
     def generate_association_rules(self, min_confidence: float = None):
         rules = []
         for child in self.root.children:
-            new_rules = self.generate_rules_from_parent(child)
-            for consequent in new_rules:
+            consequents = self._generate_consequent_from_parent(child)
+            for consequent in consequents:
+                # To avoid having the antecedent in the consequent
                 consequent.get('elements').pop(0)
                 if consequent.get('elements'):
                     confidence = consequent.get('support') / child.support
@@ -149,12 +153,12 @@ class EclatTree:
                         })
         return rules
 
-    def generate_rules_from_parent(self, parent):
+    def _generate_consequent_from_parent(self, parent):
         if parent.children:
             rules = []
             for child in parent.children:
                 rule = [parent.key]
-                new_rules = self.generate_rules_from_parent(child)
+                new_rules = self._generate_consequent_from_parent(child)
                 if new_rules:
                     support = 0
                     for r in new_rules:

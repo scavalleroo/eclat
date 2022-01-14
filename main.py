@@ -59,12 +59,18 @@ if __name__ == '__main__':
     transactions = list()
     f = open("data_XXS.dat", "r")
 
+    lines = 0
     for x in f:
         transaction = x.split(' ')
         if '\n' in transaction:
             transaction.remove('\n')
         transactions.append([int(item) for item in transaction])
+        lines += len(transaction)
     f.close()
+
+    print(len(transactions))
+    print('Average number of items in transaction: ', end='')
+    print(lines/len(transactions))
 
     for i in range(len(transactions)):
         eclat_tree.create_tree_from_transaction(transactions[i], i + 1)
@@ -81,6 +87,6 @@ if __name__ == '__main__':
     # print('Removing the nodes with support < ' + str(support) + ' ...')
     # eclat_tree.remove_children_by_support(support)
     # eclat_tree.print_tree()
-    rules = eclat_tree.generate_association_rules()
-    print('Number of rules: ' + str(len(rules)))
-    print_rules_with_none_elements_in_set(rules, [1, 2])
+    # rules = eclat_tree.generate_association_rules()
+    # print('Number of rules: ' + str(len(rules)))
+    # print_rules_with_none_elements_in_set(rules, [1, 2])
