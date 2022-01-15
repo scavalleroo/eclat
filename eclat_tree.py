@@ -2,9 +2,9 @@ import typing
 
 
 class EclatNode:
-    def __init__(self, data: int, n_trans: int):
+    def __init__(self, key: float, n_trans: int):
         self.children: typing.List[EclatNode] = list()
-        self.key: int = data
+        self.key: float = key
         self.transactions = [n_trans]
 
     @property
