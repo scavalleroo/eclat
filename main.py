@@ -6,8 +6,14 @@ from eclat_tree import EclatTree, EclatNode
 
 def print_rules(rules_t: typing.List[typing.Dict]):
     if rules_t:
+        s = ", "
+        count = 1
+        print('#n° ant. => consequents [support, confidence]')
         for r in rules_t:
-            print(r)
+            print(f"#{count} {s.join(str(item) for item in r.get('antecedents'))} => "
+                  f"{s.join(str(item) for item in r.get('consequents'))} "
+                  f"[{r.get('support')}, {r.get('confidence')}]")
+            count += 1
     else:
         print('No rules found')
 
@@ -18,12 +24,11 @@ def print_rules_with_all_elements_in_set(
 ):
     new_rules = list()
     for r in rules_t:
-        if all(item in r.get('antecedent')
-               or item in r.get('consequent').get('elements')
+        if all(item in r.get('antecedents') or item in r.get('consequents')
                for item in items_set):
             new_rules.append(r)
     print_rules(new_rules)
-    print(f'Number of matches {len(new_rules)}')
+    print(f'Number of matched rules {len(new_rules)}')
 
 
 def print_rules_with_some_elements_in_set(
@@ -32,12 +37,11 @@ def print_rules_with_some_elements_in_set(
 ):
     new_rules = list()
     for r in rules_t:
-        if any(item in r.get('antecedent')
-               or item in r.get('consequent').get('elements')
+        if any(item in r.get('antecedents') or item in r.get('consequents')
                for item in items_set):
             new_rules.append(r)
     print_rules(new_rules)
-    print(f'Number of matches {len(new_rules)}')
+    print(f'Number of matched rules {len(new_rules)}')
 
 
 def print_rules_with_none_elements_in_set(
@@ -46,12 +50,11 @@ def print_rules_with_none_elements_in_set(
 ):
     new_rules = list()
     for r in rules_t:
-        if not any(item in r.get('antecedent')
-                   or item in r.get('consequent').get('elements')
+        if not any(item in r.get('antecedents') or item in r.get('consequents')
                    for item in items_set):
             new_rules.append(r)
     print_rules(new_rules)
-    print(f'Number of matches {len(new_rules)}')
+    print(f'Number of matched rules {len(new_rules)}')
 
 
 if __name__ == '__main__':
@@ -103,7 +106,7 @@ if __name__ == '__main__':
     print('Building the tree...')
     print(f'[{datetime.datetime.now()}] Execution started.')
     print('This process can take a few minutes...')
-    eclat_tree = EclatTree(root_t=EclatNode(0, 0))
+    eclat_tree = EclatTree(root_t=EclatNode(-1, 0))
     for i in range(len(transactions)):
         eclat_tree.create_tree_from_transaction(transactions[i], i + 1)
     print('Generation of the tree completed')
@@ -120,7 +123,8 @@ if __name__ == '__main__':
     print()
 
     print(f'[{datetime.datetime.now()}] Generating association rules')
-    rules = eclat_tree.generate_association_rules()
+    rules = eclat_tree.generate_association_rules(
+        min_support=support_rule, min_confidence=confidence)
     print(f'[{datetime.datetime.now()}] Generation of the rules completed')
     print(f'Total number of rules {len(rules)}')
     print()
