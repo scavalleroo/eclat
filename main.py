@@ -155,7 +155,7 @@ def main():
     Main function, the operation performed are:
      - Reading the configuration file
      - Reading the transactions
-     - UNCOMMENT TO LINE TO PERFORM THE DISCRATIZATION
+     - Discretization if it is set
      - Bulding ECLAT tree
      - Remove nodes from the tree with support < threshold support
      - Saving ECLAT nodes
@@ -193,11 +193,15 @@ def main():
         # Number of antecedent in the generated rule
         num_antecedents = int(temp[6])
         print(f'Number of antecedents in association rules [{num_antecedents}]')
+        discretization = bool(int(temp[7]))
+        print(discretization)
+        print(f'Is discretization performed? '
+              f'{"Yes" if discretization else "No"}')
         # Number of classes used for discatization
-        num_classes = int(temp[7])
-        print(f'TODO: UNCOMMENT THE DISCRATIZATION!\n'
-              f'Number of classes used for dataset discretization '
-              f'[{num_classes}]')
+        if discretization:
+            num_classes = int(temp[8])
+            print(f'Number of classes used for dataset discretization '
+                  f'[{num_classes}]')
         f.close()
 
     # Reading the dataset file and generating the list of transactions
@@ -212,11 +216,8 @@ def main():
             items += len(transaction)
         f.close()
 
-    """
-    UNCOMMENT TO LINE BELOW TO SEE THE DISCRATIZATION
-    Discretization function to use with spread attributes values
-    """
-    # transactions = discretize_data(transactions, num_classes)
+    if discretization:
+        transactions = discretize_data(transactions, num_classes)
 
     print(f'Number of transaction {len(transactions)}')
     print(f'Average number of items in transactions {items/len(transactions)}')

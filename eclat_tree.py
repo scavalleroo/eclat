@@ -47,7 +47,7 @@ class EclatTree:
             level: int = 0,
             out_file=None,
     ):
-        """Recursive function to explore and save the tree nodes"""s
+        """Recursive function to explore and save the tree nodes"""
         if node:
             if not dfs and node != self.root:
                 node.save_node(level, parent, out_file=out_file)
