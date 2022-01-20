@@ -1,21 +1,26 @@
 import datetime
 import typing
-
+import sys
+import const
 from eclat_tree import EclatTree, EclatNode
 
 
-def print_rules(rules_t: typing.List[typing.Dict]):
-    if rules_t:
-        s = ", "
-        count = 1
-        print('#n° ant. => consequents [support, confidence]')
-        for r in rules_t:
-            print(f"#{count} {s.join(str(item) for item in r.get('antecedents'))} => "
-                  f"{s.join(str(item) for item in r.get('consequents'))} "
-                  f"[{r.get('support')}, {r.get('confidence')}]")
-            count += 1
-    else:
-        print('No rules found')
+def save_rules(rules_t: typing.List[typing.Dict]):
+    with open(const.FILENAME_RULES, 'w') as f:
+        if rules_t:
+            s = ", "
+            count = 1
+            f.write('#n° ant. => consequents [support, confidence]\n')
+            for r in rules_t:
+                f.write(f"#{count} "
+                        f"{s.join(str(item) for item in r.get('antecedents'))}"
+                        f" => "
+                        f"{s.join(str(item) for item in r.get('consequents'))} "
+                        f"[{r.get('support')}, {r.get('confidence')}]\n")
+                count += 1
+        else:
+            f.write('No rules found')
+        f.close()
 
 
 def print_rules_with_all_elements_in_set(
@@ -27,7 +32,7 @@ def print_rules_with_all_elements_in_set(
         if all(item in r.get('antecedents') or item in r.get('consequents')
                for item in items_set):
             new_rules.append(r)
-    print_rules(new_rules)
+    save_rules(new_rules)
     print(f'Number of matched rules {len(new_rules)}')
 
 
@@ -40,7 +45,7 @@ def print_rules_with_some_elements_in_set(
         if any(item in r.get('antecedents') or item in r.get('consequents')
                for item in items_set):
             new_rules.append(r)
-    print_rules(new_rules)
+    save_rules(new_rules)
     print(f'Number of matched rules {len(new_rules)}')
 
 
@@ -53,11 +58,42 @@ def print_rules_with_none_elements_in_set(
         if not any(item in r.get('antecedents') or item in r.get('consequents')
                    for item in items_set):
             new_rules.append(r)
-    print_rules(new_rules)
+    save_rules(new_rules)
     print(f'Number of matched rules {len(new_rules)}')
 
 
-if __name__ == '__main__':
+def discretize_data(
+        transactions: typing.List[typing.List], n_classes: int = None):
+    if transactions:
+        maxes = [0] * len(transactions[0])
+        mins = [200] * len(transactions[0])
+        for transaction in transactions:
+            i = 0
+            for value in transaction:
+                if maxes[i] < value:
+                    maxes[i] = value
+                elif mins[i] > value:
+                    mins[i] = value
+                i += 1
+        ranges = [[]] * len(maxes)
+        for i in range(len(maxes)):
+            step = (maxes[i] - mins[i]) / n_classes
+            for j in range(n_classes):
+                ranges[i].append(mins[i] + step * j)
+
+        for transaction in transactions:
+            i = 0
+            for value in transaction:
+                value = float(value)
+                for j in range(len(ranges[i])):
+                    if ranges[i][j] > value:
+                        transaction[i] = ranges[i][j - 1]
+                        break
+                i += 1
+        return transactions
+
+
+def main():
     # Configuration file
     with open("data.conf", "r") as f:
         temp = f.read().splitlines()
@@ -82,9 +118,17 @@ if __name__ == '__main__':
         filter_list = temp[5].split(' ')
         if '\n' in filter_list:
             filter_list.remove('\n')
-        filter_list = [int(item) for item in filter_list]
+        filter_list = [float(item) for item in filter_list]
         print(f'Filter list {filter_list}')
         print()
+        # Number of antecedent in the generated rule
+        num_antecedents = int(temp[6])
+        print(f'Number of antecedents in association rules [{num_antecedents}]')
+        # Number of classes used for discatization
+        num_classes = int(temp[7])
+        print(f'TODO: UNCOMMENT THE DISCRATIZATION!\n'
+              f'Number of classes used for dataset discretization '
+              f'[{num_classes}]')
         f.close()
 
     # Reading the dataset file and generating the list of transactions
@@ -99,6 +143,12 @@ if __name__ == '__main__':
             items += len(transaction)
         f.close()
 
+    """
+    UNCOMMENT TO LINE BELOW TO SEE THE DISCRATIZATION
+    Discretization function to use with spread attributes values
+    """
+    # transactions = discretize_data(transactions, num_classes)
+
     print(f'Number of transaction {len(transactions)}')
     print(f'Average number of items in transactions {items/len(transactions)}')
     print()
@@ -106,7 +156,7 @@ if __name__ == '__main__':
     print('Building the tree...')
     print(f'[{datetime.datetime.now()}] Execution started.')
     print('This process can take a few minutes...')
-    eclat_tree = EclatTree(root_t=EclatNode(-1, 0))
+    eclat_tree = EclatTree(root_t=EclatNode(0, 0))
     for i in range(len(transactions)):
         eclat_tree.create_tree_from_transaction(transactions[i], i + 1)
     print('Generation of the tree completed')
@@ -120,15 +170,21 @@ if __name__ == '__main__':
     print(f'Removing the nodes with support < {str(support_node)}')
     eclat_tree.remove_children_by_support(support_node)
     print(f'Number of nodes in the ECALT tree {eclat_tree.count_nodes()}')
+    eclat_tree.save_tree()
     print()
 
-    print(f'[{datetime.datetime.now()}] Generating association rules')
+    print(f'[{datetime.datetime.now()}] Generating association rules with '
+          f'support >= {support_rule} confidence >= {confidence}')
     rules = eclat_tree.generate_association_rules(
-        min_support=support_rule, min_confidence=confidence)
+        min_support=support_rule,
+        min_confidence=confidence,
+        num_antecedents=num_antecedents,
+    )
     print(f'[{datetime.datetime.now()}] Generation of the rules completed')
     print(f'Total number of rules {len(rules)}')
     print()
 
+    print(f'Saving rules with {filter} elements in {filter_list}')
     if filter == 'some':
         print_rules_with_some_elements_in_set(rules, filter_list)
     elif filter == 'all':
@@ -136,4 +192,9 @@ if __name__ == '__main__':
     elif filter == 'none':
         print_rules_with_none_elements_in_set(rules, filter_list)
     else:
-        print_rules(rules)
+        save_rules(rules)
+    print(f'Check the file {const.FILENAME_RULES}')
+
+
+if __name__ == '__main__':
+    main()

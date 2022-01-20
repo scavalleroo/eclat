@@ -1,3 +1,5 @@
+import const
+import io
 import typing
 
 
@@ -11,33 +13,41 @@ class EclatNode:
     def support(self):
         return len(self.transactions)
 
-    def print_node(self, level: int = 0, parent: "EclatNode" = None):
-        print('#' + str(level) + ' ' + str(parent.key) + ' -> ' +
-              str(self.key) + ', sup: ' + str(self.support) + ' ', end='')
-        print(self.transactions)
+    def print_node(
+            self,
+            level: int = 0,
+            parent: "EclatNode" = None,
+            out_file=None,
+    ):
+        out_file.write(f'#L{level} {parent.key if parent.key != 0 else "root"} '
+                       f'-> {self.key}, {self.support}, {self.transactions}\n')
 
 
 class EclatTree:
     def __init__(self, root_t: EclatNode):
         self.root: EclatNode = root_t
 
-    def print_tree(self, dfs: bool = False):
-        self._print_sub_tree(self.root, self.root, dfs)
+    def save_tree(self, dfs: bool = False):
+        with open(const.FILENAME_NODES, 'w') as f:
+            f.write('#Level parent -> value, support, transactions\n')
+            self._save_sub_tree(self.root, self.root, dfs, out_file=f)
 
-    def _print_sub_tree(
+    def _save_sub_tree(
             self,
             node: EclatNode,
             parent: EclatNode,
             dfs: bool = False,
             level: int = 0,
+            out_file=None,
     ):
         if node:
             if not dfs and node != self.root:
-                node.print_node(level, parent)
+                node.print_node(level, parent, out_file=out_file)
             for child in node.children:
-                self._print_sub_tree(child, node, dfs, level + 1)
+                self._save_sub_tree(child, node, dfs, level + 1,
+                                    out_file=out_file)
             if dfs and node != self.root:
-                node.print_node(level, parent)
+                node.print_node(level, parent, out_file=out_file)
 
     def create_tree_from_transaction(
             self,
@@ -52,7 +62,7 @@ class EclatTree:
                 self.root.children.append(EclatNode(element, n_trans))
 
         # Add children to root children
-        for i in range(len(transaction)-1):
+        for i in range(len(transaction) - 1):
             for child in self.root.children:
                 if child.key == transaction[i]:
                     for j in range(len(transaction[i + 1:])):
@@ -120,7 +130,6 @@ class EclatTree:
 
     def find_max_support(self):
         max_sup = 0
-        node = None
         if self.root.children:
             max_sup = max(
                 max([child.support for child in self.root.children]), max_sup)
@@ -136,40 +145,73 @@ class EclatTree:
             self._remove_children_by_support(child, support)
 
     def generate_association_rules(
-            self, min_support: float = None, min_confidence: float = None):
+            self,
+            min_support: float = 0,
+            min_confidence: float = 0,
+            num_antecedents: int = 1,
+    ):
         rules = []
         for child in self.root.children:
-            consequents = self._generate_consequent_from_parent(child)
-            for consequent in consequents:
+            gen_rules = self._generate_rules_from_parent(child, num_antecedents)
+            for r in gen_rules:
                 # To avoid having the antecedent in the consequent
-                consequent.get('elements').pop(0)
-                if consequent.get('elements'):
-                    confidence = consequent.get('support') / child.support
+                if r.get('consequents'):
+                    confidence = (r.get('support_c') / r.get('support_a')) \
+                        if r.get('support_a') else 0
                     if (min_confidence and confidence >= min_confidence
                         or not min_confidence) and \
                             (min_support and
-                             consequent.get('support') >= min_support
+                             r.get('support_c') >= min_support
                              or not min_support):
                         rules.append({
-                            'antecedents': [child.key],
-                            'consequents': consequent.get('elements'),
-                            'support': consequent.get('support'),
+                            'antecedents': r.get('antecedents'),
+                            'consequents': r.get('consequents'),
+                            'support': r.get('support_c'),
                             'confidence': float("{:.3f}".format(confidence)),
                         })
         return rules
 
-    def _generate_consequent_from_parent(self, parent):
+    def _generate_rules_from_parent(
+            self, parent, num_antecedents: int = 1):
         if parent.children:
-            rules = []
+            rules = list()
             for child in parent.children:
-                rule = [parent.key]
-                new_rules = self._generate_consequent_from_parent(child)
+                antecedents = list()
+                consequents = list()
+                if num_antecedents < 1:
+                    consequents = [parent.key]
+                else:
+                    antecedents = [parent.key]
+                new_rules = self._generate_rules_from_parent(
+                    child, num_antecedents=(num_antecedents - 1))
                 if new_rules:
-                    support = 0
+                    support_c = 0
+                    support_a = parent.support if num_antecedents == 1 else 0
                     for r in new_rules:
-                        rule.extend(r.get('elements'))
-                        support = r.get('support')
-                    rules.append({'elements': rule, 'support': support})
+                        antecedents.extend(r.get('antecedents'))
+                        consequents.extend(r.get('consequents'))
+                        support_a = r.get('support_a') \
+                            if r.get('support_a') != 0 else support_a
+                        support_c = r.get('support_c')
+                    rules.append({
+                        'antecedents': antecedents,
+                        'consequents': consequents,
+                        'support_a': support_a,
+                        'support_c': support_c,
+                    })
             return rules
         else:
-            return [{'elements': [parent.key], 'support': parent.support}]
+            if num_antecedents < 1:
+                return [{
+                    'antecedents': list(),
+                    'consequents': [parent.key],
+                    'support_a': 0,
+                    'support_c': parent.support,
+                }]
+            else:
+                return [{
+                    'antecedents': [parent.key],
+                    'consequents': list(),
+                    'support_a': parent.support,
+                    'support_c': 0,
+                }]
