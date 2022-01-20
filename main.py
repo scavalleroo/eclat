@@ -1,11 +1,18 @@
-import datetime
-import typing
-import sys
 import const
+import datetime
+import sys
+import typing
 from eclat_tree import EclatTree, EclatNode
 
 
 def save_rules(rules_t: typing.List[typing.Dict]):
+    """
+    Save rules on file the filename is set in const.FILENAME_RULES
+    save_rules(rules_t: typing.List[typing.Dict]):
+
+    Keyword arguments:
+    rules_t -- list of rules to save on file
+    """
     with open(const.FILENAME_RULES, 'w') as f:
         if rules_t:
             s = ", "
@@ -23,10 +30,21 @@ def save_rules(rules_t: typing.List[typing.Dict]):
         f.close()
 
 
-def print_rules_with_all_elements_in_set(
+def save_rules_with_all_elements_in_set(
         rules_t: typing.List[typing.Dict],
         items_set: typing.List[int] = None,
 ):
+    """
+    Save rules that have all the elements in the list items_set
+    save_rules_with_all_elements_in_set(
+        rules_t: typing.List[typing.Dict],
+        items_set: typing.List[int] = None,
+    ):
+
+    Keyword arguments:
+    rules_t -- list of rules to to check and save
+    items_set -- list of items to check inside the rule
+    """
     new_rules = list()
     for r in rules_t:
         if all(item in r.get('antecedents') or item in r.get('consequents')
@@ -36,10 +54,21 @@ def print_rules_with_all_elements_in_set(
     print(f'Number of matched rules {len(new_rules)}')
 
 
-def print_rules_with_some_elements_in_set(
+def save_rules_with_some_elements_in_set(
         rules_t: typing.List[typing.Dict],
         items_set: typing.List[int] = None,
 ):
+    """
+    Save rules that have some of the elements in the list items_set
+    save_rules_with_some_elements_in_set(
+        rules_t: typing.List[typing.Dict],
+        items_set: typing.List[int] = None,
+    ):
+
+    Keyword arguments:
+    rules_t -- list of rules to to check and save
+    items_set -- list of items to check inside the rule
+    """
     new_rules = list()
     for r in rules_t:
         if any(item in r.get('antecedents') or item in r.get('consequents')
@@ -49,10 +78,21 @@ def print_rules_with_some_elements_in_set(
     print(f'Number of matched rules {len(new_rules)}')
 
 
-def print_rules_with_none_elements_in_set(
+def save_rules_with_none_elements_in_set(
         rules_t: typing.List[typing.Dict],
         items_set: typing.List[int] = None,
 ):
+    """
+    Save rules that have none of the elements in the list items_set
+    save_rules_with_all_elements_in_set(
+        rules_t: typing.List[typing.Dict],
+        items_set: typing.List[int] = None,
+    ):
+
+    Keyword arguments:
+    rules_t -- list of rules to to check and save
+    items_set -- list of items to check inside the rule
+    """
     new_rules = list()
     for r in rules_t:
         if not any(item in r.get('antecedents') or item in r.get('consequents')
@@ -63,7 +103,24 @@ def print_rules_with_none_elements_in_set(
 
 
 def discretize_data(
-        transactions: typing.List[typing.List], n_classes: int = None):
+        transactions: typing.List[typing.List],
+        n_classes: int = None,
+) -> typing.List[typing.List]:
+    """
+    Discretize the attributes in the transactions in more discrate values based
+    on the number of classes.
+    discretize_data(
+        transactions: typing.List[typing.List],
+        n_classes: int = None,
+    ) -> typing.List[typing.List]:
+
+    Keyword arguments:
+    transactions -- list of transactions where each item is a set of items in
+    the transaction
+    n_classes -- number of subrange to generate for each attribute, the size of
+    the range is computed taking the maximum gap and dividing it by the
+    number of classes
+    """
     if transactions:
         maxes = [0] * len(transactions[0])
         mins = [200] * len(transactions[0])
@@ -94,6 +151,18 @@ def discretize_data(
 
 
 def main():
+    """
+    Main function, the operation performed are:
+     - Reading the configuration file
+     - Reading the transactions
+     - UNCOMMENT TO LINE TO PERFORM THE DISCRATIZATION
+     - Bulding ECLAT tree
+     - Remove nodes from the tree with support < threshold support
+     - Saving ECLAT nodes
+     - Generate association rules
+     - Filter the association rules
+     - Save the association rules
+    """
     # Configuration file
     with open("data.conf", "r") as f:
         temp = f.read().splitlines()
@@ -168,7 +237,7 @@ def main():
     print()
 
     print(f'Removing the nodes with support < {str(support_node)}')
-    eclat_tree.remove_children_by_support(support_node)
+    eclat_tree.remove_nodes_by_support(support_node)
     print(f'Number of nodes in the ECALT tree {eclat_tree.count_nodes()}')
     eclat_tree.save_tree()
     print()
@@ -186,11 +255,11 @@ def main():
 
     print(f'Saving rules with {filter} elements in {filter_list}')
     if filter == 'some':
-        print_rules_with_some_elements_in_set(rules, filter_list)
+        save_rules_with_some_elements_in_set(rules, filter_list)
     elif filter == 'all':
-        print_rules_with_all_elements_in_set(rules, filter_list)
+        save_rules_with_all_elements_in_set(rules, filter_list)
     elif filter == 'none':
-        print_rules_with_none_elements_in_set(rules, filter_list)
+        save_rules_with_none_elements_in_set(rules, filter_list)
     else:
         save_rules(rules)
     print(f'Check the file {const.FILENAME_RULES}')
